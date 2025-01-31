@@ -178,3 +178,6 @@ going_modular/
 .data/
 .going_modular/
 dataset/
+dataset/dev/
+dataset/test/
+dataset/train/
