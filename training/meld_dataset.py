@@ -194,16 +194,36 @@ def prepare_dataloaders(train_csv, train_video_dir,
 
 
 if __name__ == "__main__":
+    print('working!')
+
+    # Get the current working directory
+    cwd = os.getcwd()
+    print("Current Working Directory:", cwd)
+
+    # Define the dataset directory relative to the script's location
+    dataset_dir = os.path.join(cwd, "dataset")
+
+    # Use os.path.join to create platform-independent file paths
+    train_file = os.path.join(dataset_dir, "train", "train_sent_emo.csv")
+    train_splits = os.path.join(dataset_dir, "train", "train_splits")
+
+    dev_file = os.path.join(dataset_dir, "dev", "dev_sent_emo.csv")
+    dev_splits = os.path.join(dataset_dir, "dev", "dev_splits_complete")
+
+    test_file = os.path.join(dataset_dir, "test", "test_sent_emo.csv")
+    test_splits = os.path.join(dataset_dir, "test", "output_repeated_splits_test")
+
+    # Pass dynamically constructed paths to the function
     train_loader, dev_loader, test_loader = prepare_dataloaders(
-        '../dataset/train/train_sent_emo.csv', '../dataset/train/train_splits',
-        '../dataset/dev/dev_sent_emo.csv', '../dataset/dev/dev_splits_complete',
-        '../dataset/test/test_sent_emo.csv', '../dataset/test/output_repeated_splits_test'
+        train_file, train_splits,
+        dev_file, dev_splits,
+        test_file, test_splits
     )
 
-    for batch in train_loader:
-        print(batch['text_inputs'])
-        print(batch['video_frames'].shape)
-        print(batch['audio_features'].shape)
-        print(batch['emotion_label'])
-        print(batch['sentiment_label'])
-        break
+    # for batch in train_loader:
+    #     print(batch['text_inputs'])
+    #     print(batch['video_frames'].shape)
+    #     print(batch['audio_features'].shape)
+    #     print(batch['emotion_label'])
+    #     print(batch['sentiment_label'])
+    #     break
