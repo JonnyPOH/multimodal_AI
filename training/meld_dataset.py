@@ -194,14 +194,13 @@ def prepare_dataloaders(train_csv, train_video_dir,
 
 
 if __name__ == "__main__":
-    print('working!')
-
     # Get the current working directory
     cwd = os.getcwd()
     print("Current Working Directory:", cwd)
 
     # Define the dataset directory relative to the script's location
     dataset_dir = os.path.join(cwd, "dataset")
+    print(dataset_dir)
 
     # Use os.path.join to create platform-independent file paths
     train_file = os.path.join(dataset_dir, "train", "train_sent_emo.csv")
@@ -213,12 +212,15 @@ if __name__ == "__main__":
     test_file = os.path.join(dataset_dir, "test", "test_sent_emo.csv")
     test_splits = os.path.join(dataset_dir, "test", "output_repeated_splits_test")
 
-    # Pass dynamically constructed paths to the function
-    train_loader, dev_loader, test_loader = prepare_dataloaders(
-        train_file, train_splits,
-        dev_file, dev_splits,
-        test_file, test_splits
-    )
+    meld = MELDDataset(dev_file, dev_splits)
+    print(meld[0])
+
+    # # Pass dynamically constructed paths to the function
+    # train_loader, dev_loader, test_loader = prepare_dataloaders(
+    #     train_file, train_splits,
+    #     dev_file, dev_splits,
+    #     test_file, test_splits
+    # )
 
     # for batch in train_loader:
     #     print(batch['text_inputs'])
