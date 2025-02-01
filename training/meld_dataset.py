@@ -212,20 +212,20 @@ if __name__ == "__main__":
     test_file = os.path.join(dataset_dir, "test", "test_sent_emo.csv")
     test_splits = os.path.join(dataset_dir, "test", "output_repeated_splits_test")
 
-    meld = MELDDataset(dev_file, dev_splits)
-    print(meld[0])
+    # meld = MELDDataset(dev_file, dev_splits)
+    # print(meld[0])
 
-    # # Pass dynamically constructed paths to the function
-    # train_loader, dev_loader, test_loader = prepare_dataloaders(
-    #     train_file, train_splits,
-    #     dev_file, dev_splits,
-    #     test_file, test_splits
-    # )
+    # Pass dynamically constructed paths to the function
+    train_loader, dev_loader, test_loader = prepare_dataloaders(
+        train_file, train_splits,
+        dev_file, dev_splits,
+        test_file, test_splits
+    )
 
-    # for batch in train_loader:
-    #     print(batch['text_inputs'])
-    #     print(batch['video_frames'].shape)
-    #     print(batch['audio_features'].shape)
-    #     print(batch['emotion_label'])
-    #     print(batch['sentiment_label'])
-    #     break
+    for batch in train_loader:
+        print(batch['text_inputs'])
+        print(batch['video_frames'].shape)
+        print(batch['audio_features'].shape)
+        print(batch['emotion_label'])
+        print(batch['sentiment_label'])
+        break
