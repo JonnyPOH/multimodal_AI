@@ -14,34 +14,27 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 class MELDDataset(Dataset):
     def __init__(self, csv_path, video_dir):
         self.data = pd.read_csv(csv_path)
-
         self.video_dir = video_dir
-
         self.tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
         self.emotion_map = {
             'anger': 0, 'disgust': 1, 'fear': 2, 'joy': 3, 'neutral': 4, 'sadness': 5, 'surprise': 6
         }
-
         self.sentiment_map = {
             'negative': 0, 'neutral': 1, 'positive': 2
         }
 
     def _load_video_frames(self, video_path):
+        if not os.path.exists(video_path):
+            print(f"Skipping missing video: {video_path}")
+            return torch.zeros((30, 3, 224, 224))
+
         cap = cv2.VideoCapture(video_path)
         frames = []
-
         try:
             if not cap.isOpened():
-                raise ValueError(f"Video not found: {video_path}")
-
-            # Try and read first frame to validate video
-            ret, frame = cap.read()
-            if not ret or frame is None:
-                raise ValueError(f"Video not found: {video_path}")
-
-            # Reset index to not skip first frame
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                print(f"Skipping corrupt video: {video_path}")
+                return torch.zeros((30, 3, 224, 224))
 
             while len(frames) < 30 and cap.isOpened():
                 ret, frame = cap.read()
@@ -127,14 +120,13 @@ class MELDDataset(Dataset):
         row = self.data.iloc[idx]
 
         try:
-            video_filename = f"""dia{row['Dialogue_ID']}_utt{
-                row['Utterance_ID']}.mp4"""
-
+            video_filename = f"""dia{row['Dialogue_ID']}_utt{row['Utterance_ID']}.mp4"""
             path = os.path.join(self.video_dir, video_filename)
             video_path_exists = os.path.exists(path)
 
             if video_path_exists == False:
-                raise FileNotFoundError(f"No video found for filename: {path}")
+                print(f"⚠️ Skipping missing video: {path}")
+                return None
 
             text_inputs = self.tokenizer(row['Utterance'],
                                          padding='max_length',

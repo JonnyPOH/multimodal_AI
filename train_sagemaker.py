@@ -18,7 +18,7 @@ def start_training():
         instance_type="ml.g5.xlarge",
         hyperparameters={
             "batch-size": 32,
-            "epochs": 25
+            "epochs": 4
         },
         tensorboard_config=tensorboard_config
     )

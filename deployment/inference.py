@@ -16,8 +16,13 @@ EMOTION_MAP = {0: "anger", 1: "disgust", 2: "fear",
                3: "joy", 4: "neutral", 5: "sadness", 6: "surprise"}
 SENTIMENT_MAP = {0: "negative", 1: "neutral", 2: "positive"}
 
+'''load a MultimodalSentimentModel, to process video/audio/text to
+predict emotions and sentiments.
+Loads MMSM, extracts audio and transcribes, frames and audio features.
+Inference is run, tokenizing using BERT, then predicts emotion and sentiment score'''
 
 def install_ffmpeg():
+    '''needed for video/audio processing'''
     print("Starting Ffmpeg installation...")
 
     subprocess.check_call([sys.executable, "-m", "pip",
@@ -71,6 +76,8 @@ def install_ffmpeg():
 
 
 class VideoProcessor:
+    '''extracts frames from a video file. OpenCV used to read then
+    resizes them so each segment has 30 frames'''
     def process_video(self, video_path):
         cap = cv2.VideoCapture(video_path)
         frames = []
@@ -116,6 +123,8 @@ class VideoProcessor:
 
 
 class AudioProcessor:
+    '''Extracts mel-spectrogram features, using FFmpeg to convert to
+    WAV format'''
     def extract_features(self, video_path, max_length=300):
         audio_path = video_path.replace('.mp4', '.wav')
 
@@ -166,6 +175,8 @@ class AudioProcessor:
 
 
 class VideoUtteranceProcessor:
+    '''Extracts spoken segments from video. Used FFmpeg to clip video based
+    on start/end timestamps'''
     def __init__(self):
         self.video_processor = VideoProcessor()
         self.audio_processor = AudioProcessor()
@@ -192,6 +203,7 @@ class VideoUtteranceProcessor:
 
 
 def download_from_s3(s3_uri):
+    '''download video file from S3'''
     s3_client = boto3.client("s3")
     bucket = s3_uri.split("/")[2]
     key = "/".join(s3_uri.split("/")[3:])
@@ -202,6 +214,7 @@ def download_from_s3(s3_uri):
 
 
 def input_fn(request_body, request_content_type):
+    '''Download from S3 and prepare video'''
     if request_content_type == "application/json":
         input_data = json.loads(request_body)
         s3_uri = input_data['video_path']
@@ -211,12 +224,14 @@ def input_fn(request_body, request_content_type):
 
 
 def output_fn(prediction, response_content_type):
+    '''Formats predictions as JSON'''
     if response_content_type == "application/json":
         return json.dumps(prediction)
     raise ValueError(f"Unsupported content type: {response_content_type}")
 
 
 def model_fn(model_dir):
+    '''Loads MMSM and moves to GPU. Loads weights from model.pth. Whisper and BERT load.'''
     # Load the model for inference
     if not install_ffmpeg():
         raise RuntimeError(
@@ -225,14 +240,16 @@ def model_fn(model_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = MultimodalSentimentModel().to(device)
 
+    # takes the created model
     model_path = os.path.join(model_dir, 'model.pth')
     if not os.path.exists(model_path):
         model_path = os.path.join(model_dir, "model", 'model.pth')
         if not os.path.exists(model_path):
             raise FileNotFoundError(
                 "Model file not found in path " + model_path)
-
     print("Loading model from path: " + model_path)
+
+    # load state dict and init the model. Then evaluate.
     model.load_state_dict(torch.load(
         model_path, map_location=device, weights_only=True))
     model.eval()
@@ -249,6 +266,7 @@ def model_fn(model_dir):
 
 
 def predict_fn(input_data, model_dict):
+    '''Generates predictions'''
     model = model_dict['model']
     tokenizer = model_dict['tokenizer']
     device = model_dict['device']
@@ -318,26 +336,27 @@ def predict_fn(input_data, model_dict):
     return {"utterances": predictions}
 
 
-# def process_local_video(video_path, model_dir="model_normalized"):
-#     model_dict = model_fn(model_dir)
+def process_local_video(video_path, model_dir="model_normalized"):
+    '''Runs inference on a local video'''
+    model_dict = model_fn(model_dir)
 
-#     input_data = {'video_path': video_path}
+    input_data = {'video_path': video_path}
 
-#     predictions = predict_fn(input_data, model_dict)
+    predictions = predict_fn(input_data, model_dict)
 
-#     for utterance in predictions["utterances"]:
-#         print("\nUtterance:")
-#         print(f"""Start: {utterance['start_time']}s, End: {
-#               utterance['end_time']}s""")
-#         print(f"Text: {utterance['text']}")
-#         print("\n Top Emotions:")
-#         for emotion in utterance['emotions']:
-#             print(f"{emotion['label']}: {emotion['confidence']:.2f}")
-#         print("\n Top Sentiments:")
-#         for sentiment in utterance['sentiments']:
-#             print(f"{sentiment['label']}: {sentiment['confidence']:.2f}")
-#         print("-"*50)
+    for utterance in predictions["utterances"]:
+        print("\nUtterance:")
+        print(f"""Start: {utterance['start_time']}s, End: {
+              utterance['end_time']}s""")
+        print(f"Text: {utterance['text']}")
+        print("\n Top Emotions:")
+        for emotion in utterance['emotions']:
+            print(f"{emotion['label']}: {emotion['confidence']:.2f}")
+        print("\n Top Sentiments:")
+        for sentiment in utterance['sentiments']:
+            print(f"{sentiment['label']}: {sentiment['confidence']:.2f}")
+        print("-"*50)
 
 
-# if __name__ == "__main__":
-#     process_local_video("./dia2_utt3.mp4")
+if __name__ == "__main__":
+    process_local_video("./dia2_utt3.mp4")
