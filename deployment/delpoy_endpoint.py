@@ -4,9 +4,9 @@ import sagemaker
 
 def deploy_endpoint():
     sagemaker.Session()
-    role = "your-deploy-endpoint-role"
+    role = "arn:aws:iam::637423214227:role/sentiment-analysis-deploy-role"
 
-    model_uri = "s3://your-bucket-name/inference/model.tar.gz"
+    model_uri = "s3://sentiment-analysis-saas-jpoh/inference/model.tar.gz"
 
     model = PyTorchModel(
         model_data=model_uri,

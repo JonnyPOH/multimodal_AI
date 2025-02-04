@@ -181,3 +181,12 @@ dataset/
 dataset/dev/
 dataset/test/
 dataset/train/
+tensorboard_logs/
+model/model.pth
+model/*.pth
+deployment/model/model.pth
+deployment/model/*.pth
+dia125_utt3.mp4
+deployment/model.tar.gz
+deployment/model/model.pth
+deployment/model/*.pth

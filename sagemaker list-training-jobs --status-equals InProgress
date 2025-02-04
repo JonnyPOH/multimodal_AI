@@ -1,12 +1,12 @@
 {
-    "TrainingJobSummaries": [
-        {
-            "TrainingJobName": "pytorch-training-2025-02-01-15-21-33-980",
-            "TrainingJobArn": "arn:aws:sagemaker:us-east-1:637423214227:training-job/pytorch-training-2025-02-01-15-21-33-980",
-            "CreationTime": "2025-02-01T15:21:37.563000+00:00",
-            "LastModifiedTime": "2025-02-01T15:27:24.787000+00:00",
-            "TrainingJobStatus": "InProgress",
-            "SecondaryStatus": "Training"
-        }
-    ]
+  "TrainingJobSummaries": [
+      {
+          "TrainingJobName": "pytorch-training-2025-02-01-15-21-33-980",
+          "TrainingJobArn": "arn:aws:sagemaker:us-east-1:637423214227:training-job/pytorch-training-2025-02-01-15-21-33-980",
+          "CreationTime": "2025-02-01T15:21:37.563000+00:00",
+          "LastModifiedTime": "2025-02-01T15:27:24.787000+00:00",
+          "TrainingJobStatus": "InProgress",
+          "SecondaryStatus": "Training"
+      }
+  ]
 }

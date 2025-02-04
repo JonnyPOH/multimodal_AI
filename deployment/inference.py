@@ -25,6 +25,14 @@ def install_ffmpeg():
     '''needed for video/audio processing'''
     print("Starting Ffmpeg installation...")
 
+    # install_dir = os.path.expanduser("~/bin")
+    # os.makedirs(install_dir, exist_ok=True)
+    # target_path = os.path.join(install_dir, "ffmpeg")
+
+    # if os.path.exists(target_path):
+    #     print(f"FFmpeg already installed at {target_path}")
+    #     return True
+
     subprocess.check_call([sys.executable, "-m", "pip",
                           "install", "--upgrade", "pip"])
 
@@ -55,10 +63,28 @@ def install_ffmpeg():
             text=True
         )
         ffmpeg_path = result.stdout.strip()
+        print(f"THIS IS THE PATH {ffmpeg_path}")
 
-        subprocess.check_call(["cp", ffmpeg_path, "/usr/local/bin/ffmpeg"])
 
-        subprocess.check_call(["chmod", "+x", "/usr/local/bin/ffmpeg"])
+        # subprocess.check_call(["cp", ffmpeg_path, "/usr/local/bin/ffmpeg"])
+        # subprocess.check_call(["chmod", "+x", "/usr/local/bin/ffmpeg"])
+        # print("Installed static FFmpeg binary successfully")
+
+
+        install_dir = os.path.expanduser("~/bin")
+        os.makedirs(install_dir, exist_ok=True)
+        target_path = os.path.join(install_dir, "ffmpeg")
+
+        # Copy FFmpeg to user-writable directory
+        subprocess.check_call(["cp", ffmpeg_path, target_path])
+        subprocess.check_call(["chmod", "+x", target_path])  # Make it executable
+
+        # Add ~/bin/ to PATH dynamically
+        os.environ["PATH"] = f"{install_dir}:" + os.environ["PATH"]
+        print(f"Installed FFmpeg successfully at {target_path}")
+
+
+
 
         print("Installed static FFmpeg binary successfully")
     except Exception as e:
@@ -129,8 +155,9 @@ class AudioProcessor:
         audio_path = video_path.replace('.mp4', '.wav')
 
         try:
+            ffmpeg_path = "/home/jonnyoh/bin/ffmpeg"
             subprocess.run([
-                'ffmpeg',
+                ffmpeg_path,
                 '-i', video_path,
                 '-vn',
                 '-acodec', 'pcm_s16le',
@@ -183,19 +210,22 @@ class VideoUtteranceProcessor:
 
     def extract_segment(self, video_path, start_time, end_time, temp_dir="/tmp"):
         os.makedirs(temp_dir, exist_ok=True)
+        print("starting the extraction")
         segment_path = os.path.join(
             temp_dir, f"segment_{start_time}_{end_time}.mp4")
-
+        print(f"THIS IS THE SEGMENT PATH {segment_path}")
+        ffmpeg_path = "/home/jonnyoh/bin/ffmpeg"
         subprocess.run([
-            "ffmpeg", "-i", video_path,
+            ffmpeg_path, "-i", video_path,
             "-ss", str(start_time),
             "-to", str(end_time),
             "-c:v", "libx264",
             "-c:a", "aac",
+            "-ac", "2",
             "-y",
             segment_path
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
+        # print(f"THIS IS THE SEGMENT PATH {segment_path}")
         if not os.path.exists(segment_path) or os.path.getsize(segment_path) == 0:
             raise ValueError("Segment extraction failed: " + segment_path)
 
@@ -238,10 +268,12 @@ def model_fn(model_dir):
             "FFmpeg installation failed - required for inference")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
     model = MultimodalSentimentModel().to(device)
 
     # takes the created model
     model_path = os.path.join(model_dir, 'model.pth')
+    print(f"THIS IS THE MODEL PATH {model_path}")
     if not os.path.exists(model_path):
         model_path = os.path.join(model_dir, "model", 'model.pth')
         if not os.path.exists(model_path):
@@ -253,7 +285,7 @@ def model_fn(model_dir):
     model.load_state_dict(torch.load(
         model_path, map_location=device, weights_only=True))
     model.eval()
-
+    print(f"EVALUATION OVER!!!!")
     return {
         'model': model,
         'tokenizer': AutoTokenizer.from_pretrained('bert-base-uncased'),
@@ -277,15 +309,20 @@ def predict_fn(input_data, model_dict):
 
     utterance_processor = VideoUtteranceProcessor()
     predictions = []
-
+    # start_s = result["segments"]
+    # end_s = result["segments"]["end"]
+    # print(f"RESULTS: {result["segments"]}")
+    # print(f"vid: {video_path}, start {start_s}")
     for segment in result["segments"]:
+        print("starting segmentation")
         try:
+            print("trying segmentation")
             segment_path = utterance_processor.extract_segment(
                 video_path,
                 segment["start"],
                 segment["end"]
             )
-
+            print(f"finished segmentaion, path is: {segment_path}")
             video_frames = utterance_processor.video_processor.process_video(
                 segment_path)
             audio_features = utterance_processor.audio_processor.extract_features(
@@ -313,7 +350,7 @@ def predict_fn(input_data, model_dict):
                 emotion_values, emotion_indices = torch.topk(emotion_probs, 3)
                 sentiment_values, sentiment_indices = torch.topk(
                     sentiment_probs, 3)
-
+            print("starting predictions")
             predictions.append({
                 "start_time": segment["start"],
                 "end_time": segment["end"],
@@ -331,32 +368,35 @@ def predict_fn(input_data, model_dict):
 
         finally:
             # Cleanup
+            # print(f"NO THIS IS THE SEGMENT PATH")
+            # print(segment_path)
             if os.path.exists(segment_path):
                 os.remove(segment_path)
     return {"utterances": predictions}
 
 
-def process_local_video(video_path, model_dir="model_normalized"):
-    '''Runs inference on a local video'''
-    model_dict = model_fn(model_dir)
+# def process_local_video(video_path, model_dir="/home/jonnyoh/code/JonnyPOH/portfolio/multimodal_ai/deployment/model"):
+#     '''Runs inference on a local video'''
+#     model_dict = model_fn(model_dir)
+#     print(f"searching for input data...")
+#     input_data = {'video_path': video_path}
+#     print(f"Input data found...")
+#     # print(f"The INPUT data: {input_data}. The Model dict: {model_dict}")
+#     predictions = predict_fn(input_data, model_dict)
+#     print("predictions made")
+#     for utterance in predictions["utterances"]:
+#         print("\nUtterance:")
+#         print(f"""Start: {utterance['start_time']}s, End: {
+#               utterance['end_time']}s""")
+#         print(f"Text: {utterance['text']}")
+#         print("\n Top Emotions:")
+#         for emotion in utterance['emotions']:
+#             print(f"{emotion['label']}: {emotion['confidence']:.2f}")
+#         print("\n Top Sentiments:")
+#         for sentiment in utterance['sentiments']:
+#             print(f"{sentiment['label']}: {sentiment['confidence']:.2f}")
+#         print("-"*50)
 
-    input_data = {'video_path': video_path}
 
-    predictions = predict_fn(input_data, model_dict)
-
-    for utterance in predictions["utterances"]:
-        print("\nUtterance:")
-        print(f"""Start: {utterance['start_time']}s, End: {
-              utterance['end_time']}s""")
-        print(f"Text: {utterance['text']}")
-        print("\n Top Emotions:")
-        for emotion in utterance['emotions']:
-            print(f"{emotion['label']}: {emotion['confidence']:.2f}")
-        print("\n Top Sentiments:")
-        for sentiment in utterance['sentiments']:
-            print(f"{sentiment['label']}: {sentiment['confidence']:.2f}")
-        print("-"*50)
-
-
-if __name__ == "__main__":
-    process_local_video("./dia2_utt3.mp4")
+# if __name__ == "__main__":
+#     process_local_video("/home/jonnyoh/code/JonnyPOH/portfolio/multimodal_ai/deployment/model/dia2_utt3.mp4")

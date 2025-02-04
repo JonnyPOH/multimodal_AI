@@ -130,7 +130,7 @@ class MultimodalSentimentModel(nn.Module):
 
         emotion_output = self.emotion_classifier(fused_features)
         sentiment_output = self.sentiment_classifier(fused_features)
-
+        print("finished!!")
         return {
             'emotions': emotion_output,
             'sentiments': sentiment_output
